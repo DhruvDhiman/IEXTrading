@@ -1,0 +1,175 @@
+﻿@model TradingData.Models.ViewModel.CompaniesCharts
+
+@{
+    ViewData["Title"] = "Quote";
+}
+
+<h2>Chart</h2>
+<hr />
+
+<h4>Select a company and get chart</h4>
+<form asp-controller="Home" asp-action="Chart" method="get">
+    <select name="symbol">
+        @foreach (Company company in Model.Companies)
+        {
+            <option value=@company.symbol selected>@company.name</option>
+        }
+    </select>
+    <input type="submit" value="Get Chart" />
+</form>
+@if (Model.Charts.Count > 0)
+{
+    Chart chart = Model.Charts.Last();
+    <hr />
+    <table>
+        <tbody>
+            <tr>
+                <td>
+                    Current Chart Data
+                    <table>
+                        <tr>
+                            <td>
+                                Symbol
+                            </td>
+                            <td>
+                                @chart.symbol
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Open
+                            </td>
+                            <td>
+                                @chart.open
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                High
+                            </td>
+                            <td>
+                                @chart.high
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Close
+                            </td>
+                            <td>
+                                @chart.close
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Volume
+                            </td>
+                            <td>
+                                @chart.volume
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td>
+                    <div>
+                        <canvas id="myChart" height="500" width="800"></canvas>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h4>
+        <a asp-controller="Home" asp-action="SaveCharts" asp-route-symbol=@chart.symbol>Click</a>
+        here to save the chart data in local database.
+    </h4>
+
+}
+
+<script>
+    var scaleVol = Math.pow(10, 6);
+    var highPrices = new Array();
+    var avgVolumes = new Array();
+    var times = new Array();
+    var sumprice = 0;
+    var sumvol = 0;
+    @foreach(Chart chart in Model.Charts)
+    {
+        @:highPrices.push(@chart.high);
+        @:avgVolumes.push((@chart.volume)/scaleVol);
+        @:times.push("@chart.date");
+        @:sumprice += @chart.high;
+        @:sumvol += @chart.volume;
+
+    }
+    var meanprice = sumprice / highPrices.length;
+    var meanvol = sumvol / (scaleVol*avgVolumes.length);
+    var ctx = document.getElementById("myChart").getContext('2d');
+    var myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: times,
+            datasets: [{
+                label: 'High Prices',
+                yAxisID : 'H',
+                data: highPrices,
+                type: 'line',
+                borderColor: 'rgba(0, 103, 71, 1)',
+                backgroundColor: 'rgba(0, 103, 71, 0.4)',
+                lineTension: 0
+            },
+            {
+                label: 'Volumes (Mn)',
+                data: avgVolumes,
+                borderColor: 'rgba(0, 0, 250, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: false,
+            scales: {
+                yAxes: [{
+                    id: 'H',
+                    type: 'linear',
+                    position: 'left',
+                }]
+            },
+            annotation: {
+                drawTime: 'afterDatasetsDraw',
+                annotations: [
+                {
+                    id: 'highprice',
+                    type: 'line',
+                    mode: 'horizontal',
+                    scaleID: 'H',
+                    value: meanprice,
+                    borderColor: 'green',
+                    borderWidth: 1,
+                    label: {
+                        backgroundColor: "green",
+                        content: "Mean: $" + meanprice,
+                        enabled: true
+                    }
+                },
+                {
+                    id: 'volume',
+                    type: 'line',
+                    mode: 'horizontal',
+                    scaleID: 'H',
+                    value: meanvol,
+                    borderColor: 'blue',
+                    borderWidth: 1,
+                    label: {
+                        backgroundColor: "blue",
+                        content: "Mean Volume: " + meanvol + "(Mn)",
+                        enabled: true
+                    }
+                }]
+
+            }
+        }
+    });
+    if (@ViewBag.dbSuccessChart === 1) {
+        alert("Data saved successfully");
+    }
+
+</script>
