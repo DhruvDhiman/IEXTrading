@@ -62,7 +62,7 @@ namespace TradingData.Controllers
                 Charts = Charts.OrderBy(c => c.date).ToList(); //Make sure the data is in ascending order of date.
             }
 
-            //Session Charts in a session variable
+            //Save Charts in a session variable
             HttpContext.Session.SetString("Charts", JsonConvert.SerializeObject(Charts));
 
             return View(new CompaniesCharts(dbContext.Companies.ToList(), Charts));
