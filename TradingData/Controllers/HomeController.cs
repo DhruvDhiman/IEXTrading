@@ -40,32 +40,32 @@ namespace TradingData.Controllers
             IEXHandler webHandler = new IEXHandler();
             List<Company> companies = webHandler.GetSymbols();
 
-            //Save comapnies in a session var
-            HttpContext.Session.SetString("Companies", JsonConvert.SerializeObject(companies));
+            //Save comapnies in TempData
+            TempData["Companies"] = JsonConvert.SerializeObject(companies);
 
             return View(companies);
         }
 
         /****
-         * The Quote action calls the GetQuote method that returns a Quote for the passed symbol.
-         * A ViewModel CompaniesQuote containing the list of companies and the Quote is passed to the Quote View.
+         * The Chart action calls the GetChart method that returns 1 year's equities for the passed symbol.
+         * A ViewModel CompaniesEquities containing the list of companies, prices, volumes, avg price and volume.
+         * This ViewModel is passed to the Chart view.
         ****/
         public IActionResult Chart(string symbol)
         {
             //Set ViewBag variable first
             ViewBag.dbSuccessChart = 0;
-            List<Chart> Charts = new List<Chart>();
+            List<Equity> equities = new List<Equity>();
             if(symbol != null)
             {
                 IEXHandler webHandler = new IEXHandler();
-                Charts = webHandler.GetChart(symbol);
-                Charts = Charts.OrderBy(c => c.date).ToList(); //Make sure the data is in ascending order of date.
+                equities = webHandler.GetChart(symbol);
+                equities = equities.OrderBy(c => c.date).ToList(); //Make sure the data is in ascending order of date.
             }
 
-            //Save Charts in a session variable
-            HttpContext.Session.SetString("Charts", JsonConvert.SerializeObject(Charts));
+            CompaniesEquities companiesEquities = getCompaniesEquitiesModel(equities);
 
-            return View(new CompaniesCharts(dbContext.Companies.ToList(), Charts));
+            return View(companiesEquities);
         }
 
         /****
@@ -77,7 +77,7 @@ namespace TradingData.Controllers
             ClearTables(tableToDel);
             Dictionary<string, int> tableCount = new Dictionary<string, int>();
             tableCount.Add("Companies", dbContext.Companies.Count());
-            tableCount.Add("Charts", dbContext.Charts.Count());
+            tableCount.Add("Charts", dbContext.Equities.Count());
             return View(tableCount);
         }
 
@@ -86,9 +86,7 @@ namespace TradingData.Controllers
         ****/
         public IActionResult PopulateSymbols()
         {
-            //IEXHandler webHandler = new IEXHandler();
-            //List<Company> companies = webHandler.GetSymbols();
-            List<Company> companies = JsonConvert.DeserializeObject<List<Company>>(HttpContext.Session.GetString("Companies"));
+            List<Company> companies = JsonConvert.DeserializeObject<List<Company>>(TempData["Companies"].ToString());
             foreach(Company company in companies)
             {
                 //Database will give PK constraint violation error when trying to insert record with existing PK.
@@ -99,29 +97,32 @@ namespace TradingData.Controllers
                 }
             }
             dbContext.SaveChanges();
-            ViewBag.dbSucessComp = 1;
+            ViewBag.dbSuccessComp = 1;
             return View("Symbols", companies);
         }
 
         /****
-         * Saves the charts in database.
+         * Saves the equities in database.
         ****/
         public IActionResult SaveCharts(string symbol)
         {
-            //IEXHandler webHandler = new IEXHandler();
-            //List<Chart> Charts = webHandler.GetChart(symbol);
-            List<Chart> Charts = JsonConvert.DeserializeObject<List<Chart>>(HttpContext.Session.GetString("Charts"));
-            foreach (Chart chart in Charts)
+            IEXHandler webHandler = new IEXHandler();
+            List<Equity> equities = webHandler.GetChart(symbol);
+            //List<Equity> equities = JsonConvert.DeserializeObject<List<Equity>>(TempData["Equities"].ToString());
+            foreach (Equity equity in equities)
             {
-                if (dbContext.Charts.Where(c => c.date.Equals(chart.date)).Count() == 0)
+                if (dbContext.Equities.Where(c => c.date.Equals(equity.date)).Count() == 0)
                 {
-                    dbContext.Charts.Add(chart);
+                    dbContext.Equities.Add(equity);
                 }
             }
             
             dbContext.SaveChanges();
             ViewBag.dbSuccessChart = 1;
-            return View("Chart", new CompaniesCharts(dbContext.Companies.ToList(), Charts));
+
+            CompaniesEquities companiesEquities = getCompaniesEquitiesModel(equities);
+
+            return View("Chart", companiesEquities);
         }
 
         /****
@@ -131,7 +132,7 @@ namespace TradingData.Controllers
         {
             if ("all".Equals(tableToDel))
             {
-                dbContext.Charts.RemoveRange(dbContext.Charts);
+                dbContext.Equities.RemoveRange(dbContext.Equities);
                 dbContext.Companies.RemoveRange(dbContext.Companies);
             }
             else if ("Companies".Equals(tableToDel))
@@ -139,14 +140,35 @@ namespace TradingData.Controllers
                 //Running below code may give FK constraint violation error. 
                 //Uncomment line below to avoid such errors.
                 dbContext.Companies.RemoveRange(dbContext.Companies
-                                                         .Where(c => c.charts.Count == 0)
+                                                         .Where(c => c.Equities.Count == 0)
                                                                       );
             }
             else if ("Charts".Equals(tableToDel))
             {
-                dbContext.Charts.RemoveRange(dbContext.Charts);
+                dbContext.Equities.RemoveRange(dbContext.Equities);
             }
             dbContext.SaveChanges();
+        }
+
+        /****
+         * Returns the ViewModel CompaniesEquities based on the data provided.
+         ****/
+        public CompaniesEquities getCompaniesEquitiesModel(List<Equity> equities)
+        {
+            List<Company> companies = dbContext.Companies.ToList();
+            
+            if (equities.Count == 0)
+            {
+                return new CompaniesEquities(companies, null, "", "", "", 0, 0);
+            }
+
+            Equity current = equities.Last();
+            string dates = string.Join(",", equities.Select(e => e.date));
+            string prices = string.Join(",", equities.Select(e => e.high));
+            string volumes = string.Join(",", equities.Select(e => e.volume/1000000)); //Divide vol by million
+            float avgprice = equities.Average(e => e.high);
+            double avgvol = equities.Average(e => e.volume)/1000000; //Divide volume by million
+            return new CompaniesEquities(companies, equities.Last(), dates, prices, volumes, avgprice, avgvol);
         }
 
     }

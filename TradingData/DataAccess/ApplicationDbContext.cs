@@ -11,6 +11,6 @@ namespace TradingData.DataAccess
             : base(options) { }
 
         public DbSet<Company> Companies { get; set; }
-        public DbSet<Chart> Charts { get; set; }
+        public DbSet<Equity> Equities { get; set; }
     }
 }

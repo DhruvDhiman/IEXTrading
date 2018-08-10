@@ -1,4 +1,4 @@
-﻿@model TradingData.Models.ViewModel.CompaniesCharts
+﻿@model TradingData.Models.ViewModel.CompaniesEquities
 
 @{
     ViewData["Title"] = "Quote";
@@ -7,7 +7,6 @@
 <h2>Chart</h2>
 <hr />
 
-<h4>Select a company to get a chart</h4>
 <form asp-controller="Home" asp-action="Chart" method="get">
     <select name="symbol">
         @foreach (Company company in Model.Companies)
@@ -17,9 +16,9 @@
     </select>
     <input type="submit" value="Get Chart" />
 </form>
-@if (Model.Charts.Count > 0)
+@if (Model.Current != null)
 {
-    Chart chart = Model.Charts.Last();
+    Equity equity = Model.Current;
     <hr />
     <table>
         <tbody>
@@ -32,7 +31,7 @@
                                 Symbol
                             </td>
                             <td>
-                                @chart.symbol
+                                @equity.symbol
                             </td>
                         </tr>
                         <tr>
@@ -40,7 +39,7 @@
                                 Open
                             </td>
                             <td>
-                                @chart.open
+                                @equity.open
                             </td>
                         </tr>
                         <tr>
@@ -48,7 +47,7 @@
                                 High
                             </td>
                             <td>
-                                @chart.high
+                                @equity.high
                             </td>
                         </tr>
                         <tr>
@@ -56,7 +55,7 @@
                                 Close
                             </td>
                             <td>
-                                @chart.close
+                                @equity.close
                             </td>
                         </tr>
                         <tr>
@@ -64,7 +63,7 @@
                                 Volume
                             </td>
                             <td>
-                                @chart.volume
+                                @equity.volume
                             </td>
                         </tr>
                     </table>
@@ -74,102 +73,18 @@
                         <canvas id="myChart" height="500" width="800"></canvas>
                     </div>
                 </td>
+                <td>
+                    <h4>
+                        <a asp-controller="Home" asp-action="SaveCharts" asp-route-symbol="@Model.Current.symbol">Click</a>
+                        here to save the chart data in local database.
+                    </h4>
+                </td>
             </tr>
         </tbody>
     </table>
-
-    <h4>
-        <a asp-controller="Home" asp-action="SaveCharts" asp-route-symbol=@chart.symbol>Click</a>
-        here to save the chart data in local database.
-    </h4>
-
 }
 
 <script>
-    var scaleVol = Math.pow(10, 6);
-    var highPrices = new Array();
-    var avgVolumes = new Array();
-    var times = new Array();
-    var sumprice = 0;
-    var sumvol = 0;
-    @foreach(Chart chart in Model.Charts)
-    {
-        @:highPrices.push(@chart.high);
-        @:avgVolumes.push((@chart.volume)/scaleVol);
-        @:times.push("@chart.date");
-        @:sumprice += @chart.high;
-        @:sumvol += @chart.volume;
-
-    }
-    var meanprice = sumprice / highPrices.length;
-    var meanvol = sumvol / (scaleVol*avgVolumes.length);
-    var ctx = document.getElementById("myChart").getContext('2d');
-    var myChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: times,
-            datasets: [{
-                label: 'High Prices',
-                yAxisID : 'H',
-                data: highPrices,
-                type: 'line',
-                borderColor: 'rgba(0, 103, 71, 1)',
-                backgroundColor: 'rgba(0, 103, 71, 0)',
-                lineTension: 0
-            },
-            {
-                label: 'Volumes (Mn)',
-                data: avgVolumes,
-                borderColor: 'rgba(0, 0, 250, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: false,
-            scales: {
-                yAxes: [{
-                    id: 'H',
-                    type: 'linear',
-                    position: 'left',
-                }]
-            },
-            annotation: {
-                drawTime: 'afterDatasetsDraw',
-                annotations: [
-                {
-                    id: 'highprice',
-                    type: 'line',
-                    mode: 'horizontal',
-                    scaleID: 'H',
-                    value: meanprice,
-                    borderColor: 'green',
-                    borderWidth: 1,
-                    label: {
-                        backgroundColor: "green",
-                        content: "Mean: $" + meanprice,
-                        enabled: true
-                    }
-                },
-                {
-                    id: 'volume',
-                    type: 'line',
-                    mode: 'horizontal',
-                    scaleID: 'H',
-                    value: meanvol,
-                    borderColor: 'blue',
-                    borderWidth: 1,
-                    label: {
-                        backgroundColor: "blue",
-                        content: "Mean Volume: " + meanvol + "(Mn)",
-                        enabled: true
-                    }
-                }]
-
-            }
-        }
-    });
-    if (@ViewBag.dbSuccessChart === 1) {
-        alert("Data saved successfully");
-    }
-
+    getChart("@Model.Dates", "@Model.Prices", "@Model.Volumes", @Model.AvgPrice, @Model.AvgVolume);
+    alertDbSave(@ViewBag.dbSuccessChart);
 </script>

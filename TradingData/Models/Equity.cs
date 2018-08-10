@@ -7,12 +7,12 @@ namespace TradingData.Models
 {
     public class ChartRoot
     {
-        public Chart [] chart { get; set; }
+        public Equity [] chart { get; set; }
     }
 
-    public class Chart
+    public class Equity
     {
-        public int ChartId { get; set; }
+        public int EquityId { get; set; }
         public string symbol { get; set; }
         public Company company { get; set; }
         public string date { get; set; }

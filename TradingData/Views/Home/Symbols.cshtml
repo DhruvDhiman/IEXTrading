@@ -48,7 +48,5 @@
     here to populate all symbols and their details in local database.</h4>
 
 <script>
-    if (typeof @ViewBag.dbSucessComp != "undefined" && @ViewBag.dbSucessComp === 1) {
-        alert("Data saved successfully");
-    }
+    alertDbSave(@ViewBag.dbSuccessComp);
 </script>

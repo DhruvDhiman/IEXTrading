@@ -27,7 +27,7 @@ namespace WebApplication1
                 options.UseSqlServer(
                     Configuration["Data:TradingData:ConnectionString"]));
             services.AddMvc();
-            services.AddDistributedMemoryCache();
+            services.AddMemoryCache();
             services.AddSession();
         }
 

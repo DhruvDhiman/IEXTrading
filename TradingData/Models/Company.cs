@@ -15,6 +15,6 @@ namespace TradingData.Models
         public bool isEnabled { get; set; }
         public string type { get; set; }
         public string iexId { get; set; }
-        public List<Chart> charts { get; set; }
+        public List<Equity> Equities { get; set; }
     }
 }

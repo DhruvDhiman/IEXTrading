@@ -46,7 +46,7 @@ namespace Infrastructure.IEXTradingHandler
         /****
          * Calls the IEX stock API to get 1 year's chart for the supplied symbol. 
         ****/
-        public List<Chart> GetChart(string symbol)
+        public List<Equity> GetChart(string symbol)
         {
             //Using the format method.
             //string IEXTrading_API_PATH = BASE_URL + "stock/{0}/batch?types=chart&range=1y";
@@ -55,7 +55,7 @@ namespace Infrastructure.IEXTradingHandler
             string IEXTrading_API_PATH = BASE_URL + "stock/" + symbol + "/batch?types=chart&range=1y";
 
             string charts = "";
-            List<Chart> Charts = new List<Chart>();
+            List<Equity> Equities = new List<Equity>();
             httpClient.BaseAddress = new Uri(IEXTrading_API_PATH);
             HttpResponseMessage response = httpClient.GetAsync(IEXTrading_API_PATH).GetAwaiter().GetResult();
             if (response.IsSuccessStatusCode)
@@ -65,15 +65,15 @@ namespace Infrastructure.IEXTradingHandler
             if (!charts.Equals(""))
             {
                 ChartRoot root = JsonConvert.DeserializeObject<ChartRoot>(charts, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
-                Charts = root.chart.ToList();
+                Equities = root.chart.ToList();
             }
             //make sure to add the symbol the chart
-            foreach(Chart Chart in Charts)
+            foreach(Equity Equity in Equities)
             {
-                Chart.symbol = symbol;
+                Equity.symbol = symbol;
             }
             
-            return Charts;
+            return Equities;
         }
 
     }
